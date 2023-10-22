@@ -172,6 +172,6 @@ horizontal_print() {
 
 # Executing
 l="`specs_left`"
-r=""
+r="`specs_right`"
 z="$(horizontal_print "`pad_right "$ascii" 3`" "$r")"
 horizontal_print "`pad_left "$l"`" "$z"
