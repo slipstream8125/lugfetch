@@ -13,10 +13,10 @@
 
 ## Todo
 
-- [] Colored output
-- [] Fetch the info dynamically (most likely borrow the scraping script from an existing fetch program)
-- [] Document the code
-- [] Configuration file
+- [ ] Colored output
+- [ ] Fetch the info dynamically (most likely borrow the scraping script from an existing fetch program)
+- [ ] Document the code
+- [ ] Configuration file
 
 ## Contributing
 
