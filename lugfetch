@@ -12,6 +12,13 @@
 IFS=''
 shopt -s expand_aliases
 alias echo="echo -e"
+echo
+
+# Number from base16 colors
+color_line=5
+color_text=11
+color_title=4
+color_ascii=3
 
 # specs_right() {
 # 	box_title_left WM		"bspwm             "
@@ -31,8 +38,9 @@ alias echo="echo -e"
 # 	box_title_right "GPU 1" " AMD Radeon Vega 7"
 # 	box_title_right RAM		"5888MiB / 15341MiB"
 # }
+
 specs_right() {
-	box_title_left WM bspwm
+	box_title_left WM "bspwm "
 	box_title_left TERM Alacritty
 	box_title_left FONT "Iosevka "
 	box_title_left THM Gruvbox
@@ -72,48 +80,43 @@ ascii="              &BGBB#&   #B#&
                        &GJ7JY55#
                             &&"
 
-# Characters
-color=""
-lh="─"		# horizontal line
-lv="│"		# vertical line
-ctl="╭"		# corner top left
-ctr="╮"
-cbl="╰"
-cbr="╯"
-
-# pl() {
-# 	extra_spaces=$[$2 - ${#1}]
-# 	echo $extra_spaces
-# 	echo "$1`multi_char ' ' $extra_spaces`"
-# }
-# pr() {
-# 	extra_spaces=$[$2 - ${#1}]
-# 	echo $extra_spaces
-# 	echo "`multi_char ' ' $extra_spaces`$1"
-# }
-
-box_title_left() {
-	title=$1
-	shift
-	content=$@
-	c="$lv $content $lv"
-	l=$[${#title}+7]
-	printf "$ctl$lh $title "
-	echo `echo "${c::-${l}}" | sed "s/./\${lh}/g"`$ctr
-	echo $lv $content $lv
-	echo $cbl`echo "${c::-2}" | sed "s/./\${lh}/g"`$cbr
+#############
+## Theming ##
+#############
+color() {
+	echo `tput setaf $1`$2`tput sgr0`
 }
-box_title_right() {
-	title=$1
-	shift
-	# content="`pr $@ 20`"
-	content=$@
-	c="$lv $content $lv"
-	l=$[${#title}+7]
-	printf $ctl`echo "${c::-${l}}" | sed "s/./\${lh}/g"`
-	echo  $title $lh$ctr
-	echo $lv $content $lv
-	echo $cbl`echo "${c::-2}" | sed "s/./\${lh}/g"`$cbr
+
+# Apply color to ascii art:
+res=""
+while read a; do
+	res+="`color $color_ascii $a`
+"
+done<<<"$ascii"
+ascii=$res
+
+# Box characters
+lh=`color $color_line ─`	# horizontal line
+lv=`color $color_line │`	# vertical line
+ctl=`color $color_line ╭`	# corner top left
+ctr=`color $color_line ╮`	# corner top right
+cbl=`color $color_line ╰`	# corner bottom left
+cbr=`color $color_line ╯`	# corner bottom right
+ts=`color $color_line `	# title start
+te=`color $color_line `	# title end
+
+#############
+## Helpers ##
+#############
+pl() {
+	extra_spaces=$[$2 - ${#1}]
+	echo $extra_spaces
+	echo "$1`multi_char ' ' $extra_spaces`"
+}
+pr() {
+	extra_spaces=$[$2 - ${#1}]
+	echo $extra_spaces
+	echo "`multi_char ' ' $extra_spaces`$1"
 }
 
 # Outputs char n times
@@ -125,27 +128,35 @@ multi_char() {
 	done
 }
 
+# Counts the characters in the longest line after stripping all \e (color) flags
+# (text)
+count_chars() {
+	echo $1 | sed "s/$(echo -e "\e")[^m]*m//g" | wc -L
+}
+
 pad_left() {
 	res=""
-	max_width=`echo "$1" | wc -L`
+	max_width=`count_chars $1`
 	while read -r l1; do
-		extra_spaces=$[max_width - ${#l1}]
+		extra_spaces=$[max_width - `count_chars $l1`]
 		res+="`multi_char ' ' $extra_spaces`$l1\n"
 	done <<<"$1"
 	echo "$res"
 }
 pad_right() {
 	res=""
-	max_width=`echo "$1" | wc -L`
+	max_width=`count_chars $1`
 	while read -r l1; do
-		extra_spaces=$[max_width - ${#l1} + $2]
+		extra_spaces=$[max_width - `count_chars $l1` + $2]
 		res+="$l1`multi_char ' ' $extra_spaces`\n"
 	done <<<"$1"
 	echo "$res"
 }
 
+##########
+## Main ##
+##########
 horizontal_print() {
-
 	# Find the text that has more lines
 	if [ "`echo -e "$1" | wc -l`" -gt "`echo -e "$2" | wc -l`" ]; then
 		t1="$1"
@@ -159,9 +170,10 @@ horizontal_print() {
 
 	# Add empty lines to the shorter text one
 	extra_lines=$[`echo -e "$t1" | wc -l` - `echo -e "$t2" | wc -l`]
-	max_width=`echo "$t2" | wc -L`
+	max_width=`count_chars $t2`
 	t2+="\n`multi_char "$(multi_char ' ' $max_width)\n" $extra_lines`"
 
+	# Take a line from each text and echo them next to each other
 	i=1
 	while read -r l1; do
 		l2="`echo "$t2" | sed "${i}!d"`"
@@ -170,7 +182,37 @@ horizontal_print() {
 	done <<<"$t1"
 }
 
-# Executing
+# Creates a box with title left aligned
+# (title, text)
+box_title_left() {
+	title=`color $color_title $1`
+	shift
+	content=`color $color_text $@`
+	c="$lv $content $lv"
+	l=$[`count_chars $title`+7]
+	printf "$ctl$lh$ts $title $te"
+	echo `multi_char ${lh} $[$(count_chars $c)-l]`$ctr
+	echo $lv $content $lv
+	echo $cbl`multi_char ${lh} $[$(count_chars $c)-2]`$cbr
+}
+
+# Creates a box with title right aligned
+# (title, text)
+box_title_right() {
+	title=`color $color_title $1`
+	shift
+	content=`color $color_text $@`
+	c="$lv $content $lv"
+	l=$[`count_chars $title`+7]
+	printf $ctl`multi_char ${lh} $[$(count_chars $c)-l]`
+	echo $ts $title $te$lh$ctr
+	echo $lv $content $lv
+	echo $cbl`multi_char ${lh} $[$(count_chars $c)-2]`$cbr
+}
+
+#########
+## Run ##
+#########
 l="`specs_left`"
 r="`specs_right`"
 z="$(horizontal_print "`pad_right "$ascii" 3`" "$r")"
