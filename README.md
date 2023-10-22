@@ -5,7 +5,7 @@
 
 ## About
 
-- A fetch tool written in `shell`
+- A fetch tool written in POSIX `sh`
 
 - Meant for use in [LUGOS](https://github.com/lugvitc/LUG_custom_distro) (A Bedrock-derived distro made by the Linux Club OS Team)
 
