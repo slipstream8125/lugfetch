@@ -9,4 +9,24 @@
 
 - Meant for use in [LUGOS](https://github.com/lugvitc/LUG_custom_distro) (A Bedrock-derived distro made by the Linux Club OS Team)
 
-- For further info on how to contribute to this project,refer to [CONTRUBUTING.md](CONTRIBUTING.md)
+- For further info on how to contribute to this project, refer to [CONTRUBUTING.md](CONTRIBUTING.md)
+
+## Todo
+
+- [] Colored output
+- [] Fetch the info dynamically (most likely borrow the scraping script from an existing fetch program)
+- [] Document the code
+- [] Configuration file
+
+## Contributing
+
+- Functionalize everything in a format like:
+```shell
+# Description of function
+# (paramters, asd=default_value)
+function_name() {
+    ...
+}
+```
+
+- For further info on how to contribute to this project, refer to [CONTRUBUTING.md](CONTRIBUTING.md)
