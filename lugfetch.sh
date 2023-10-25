@@ -1,5 +1,6 @@
 #! /bin/sh
 
+# OUTDATED #
 #-- lugfetch --#
 # A fetch tool written in shell
 # Meant for use in LUGOS (A Bedrock-derived distro made by the Linux Club OS Team)
