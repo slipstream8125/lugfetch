@@ -3324,6 +3324,7 @@ int main(int argc, char** argv) {
 	// The shell script will pass an arbitrary argument (in this case `rerun_with_env_vars_set`)
 	// which executes `outputFetch()`.
 	if (argc > 1) {
+	// if (getenv("os")) { // Not using this to detect environment variables cause of possible recursion
 		outputFetch();
 	} else {
 		shell_script += "\n" + (string)argv[0] + " rerun_with_env_vars_set";
