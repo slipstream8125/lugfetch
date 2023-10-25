@@ -1,8 +1,4 @@
 /*
- * This needs lot of clean up
- */
-
-/*
  * The C++ part handles all the layout calculations and printing.
  * The shell script (under shell_script variable) is the script that fetches the info
  *
@@ -17,8 +13,8 @@
  * The script re runs this program (with an arbitrary argument) with the new environment variables 
  * and hence C++ can fetch the variables.
  *
- * There must be a much more efficient way to do this, but this is what I was able to come up with.
- * This is my first fetch script :D
+ * There must be a much more efficient way to do this, but this is what I was able to come up with
+ * as this is my first fetch script :D
  */
 
 #include <iostream>
