@@ -350,14 +350,13 @@ get_distro() {
 
             elif [[ -f /etc/os-release || \
                     -f /usr/lib/os-release || \
-                    -f /etc/openwrt_release || \
-                    -f /etc/lsb-release ]]; then
+                    -f /etc/openwrt_release ]]; then
 
                 # Source the os-release file
-                for file in /etc/lsb-release /usr/lib/os-release \
+                for file in /usr/lib/os-release \
                             /etc/os-release  /etc/openwrt_release; do
-					(source "$file" && break) 2> /dev/null
-					#source "$file" && break
+					#(source "$file" && break) 2> /dev/null
+					source "$file" && break
                 done
 
                 # Format the distro name.
@@ -1805,7 +1804,7 @@ get_gpu() {
                     gpu="${gpu/Intel }"
                 fi
 
-                prin "${subtitle:+${subtitle}${gpu_name}}" "$gpu"
+				# prin "${subtitle:+${subtitle}${gpu_name}}" "$gpu"
             done
 
             return
@@ -3269,18 +3268,32 @@ get_process_name() {
     printf "%s" "$name"
 }
 
-distro_shorthand="off"
+get_gpu() {
+	gpu=$(lspci -mm | awk -F '\"|\" \"|\\('                               '/"Display|"3D|"VGA/ {
+		a[$0] = $1 " " $3 " " ($(NF-1) ~ /^$|^Device [[:xdigit:]]+$/ ? $4 : $(NF-1))
+	}
+	END { for (i in a) {
+		if (!seen[a[i]]++) {
+			sub("^[^ ]+ ", "", a[i]);
+			print a[i]
+		}
+	}}' | head -1 | sed 's/.*\[//g' | sed 's/].*//g')
+}
+
+distro_shorthand="on"
 os_arch="off"
+kernel_shorthand="on"
 cpu_brand="off"
 cpu_speed="off"
 cpu_temp="off"
-gpu_type="integrated"
+gpu_type="all"
 gpu_brand="off"
 shell_path="off"
 
 get() {
 	get_$1 2> /dev/null
-	eval "export $1=\$$1"
+	eval "tmp=\$$1; export $1=\`echo \$tmp | xargs\`"
+	#eval "export $1=\${$1// }"
 }
 
 cache_uname
