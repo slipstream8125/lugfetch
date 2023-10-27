@@ -45,7 +45,7 @@ string left_info[][2] = {
 
 string right_info[][2] = {
 	{ "WM",		info("wm") },
-	{ "TERM",	info("term") },
+	{ "TERM",	info("TERM") },
 	{ "FONT",	info("font") },
 	{ "THM",	info("theme") },
 	{ "SHL",	info("shell") },
