@@ -18,7 +18,7 @@ The shell is too slow for operations to display such a fetch program. Since this
 ## Todo
 `C++`:
 - [x] Fetch the info dynamically
-- [ ] Cache the info for faster execution
+- [x] Cache the info for faster execution
 - [ ] Configuration file
 - [ ] Code cleanup
 - [ ] Testing on multiple systems

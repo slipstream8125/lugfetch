@@ -39,12 +39,13 @@ string left_info[][2] = {
 	{ "KRNL",	info("kernel") },
 	{ "CPU",	info("cpu") },
 	{ "GPU",	info("gpu") },
+	// { "DISP",	info("resolution") },
 	{ "RAM",	info("memory") }
 };
 
 string right_info[][2] = {
 	{ "WM",		info("wm") },
-	{ "TERM",	info("term") },
+	{ "TERM",	info("TERM") },
 	{ "FONT",	info("font") },
 	{ "THM",	info("theme") },
 	{ "SHL",	info("shell") },
@@ -237,9 +238,23 @@ void outputFetch() {
 		colored_ascii += color(line, COLOR_ASCII) + "\n";
 	}
 
-	// cout << padString("asd", 8, "left") << endl;
+	string content = generateLeftBoxes() * colored_ascii * generateRightBoxes();
+	// Create a box around the whole thing
+	// cout << content.find_first_of("\n");
+	//
+	// istringstream f1(content);
+ //    string line1; 
+	// int maxWidth = 0;
+	// while (getline(f1, line1)) {
+	// 	// cout << line1.size() << endl;
+	// 	int s = regex_replace(line1, regex(R"(\x1b\[[0-9;]*m)"), "").size();
+	// 	if (s > maxWidth) maxWidth = s;
+	// }
+	// cout << string(maxWidth, 'a') << endl;
+
+
 	cout << endl;
-	cout << generateLeftBoxes() * colored_ascii * generateRightBoxes();
+	cout << content;
 	cout << endl;
 }
 
@@ -3280,6 +3295,111 @@ get_gpu() {
 	}}' | head -1 | sed 's/.*\[//g' | sed 's/].*//g')
 }
 
+get_resolution() {
+    case $os in
+        "Mac OS X"|"macOS")
+            if type -p screenresolution >/dev/null; then
+                resolution="$(screenresolution get 2>&1 | awk '/Display/ {printf $6 "Hz, "}')"
+                resolution="${resolution//x??@/ @ }"
+
+            else
+                resolution="$(system_profiler SPDisplaysDataType |\
+                              awk '/Resolution:/ {printf $2"x"$4" @ "$6"Hz, "}')"
+            fi
+
+            if [[ -e "/Library/Preferences/com.apple.windowserver.plist" ]]; then
+                scale_factor="$(PlistBuddy -c "Print DisplayAnyUserSets:0:0:Resolution" \
+                                /Library/Preferences/com.apple.windowserver.plist)"
+            else
+                scale_factor=""
+            fi
+
+            # If no refresh rate is empty.
+            [[ "$resolution" == *"@ Hz"* ]] && \
+                resolution="${resolution//@ Hz}"
+
+            [[ "${scale_factor%.*}" == 2 ]] && \
+                resolution="${resolution// @/@2x @}"
+
+            if [[ "$refresh_rate" == "off" ]]; then
+                resolution="${resolution// @ [0-9][0-9]Hz}"
+                resolution="${resolution// @ [0-9][0-9][0-9]Hz}"
+            fi
+
+            [[ "$resolution" == *"0Hz"* ]] && \
+                resolution="${resolution// @ 0Hz}"
+        ;;
+
+        "Windows")
+            IFS=$'\n' read -d "" -ra sw \
+                <<< "$(wmic path Win32_VideoController get CurrentHorizontalResolution)"
+
+            IFS=$'\n' read -d "" -ra sh \
+                <<< "$(wmic path Win32_VideoController get CurrentVerticalResolution)"
+
+            sw=("${sw[@]//CurrentHorizontalResolution}")
+            sh=("${sh[@]//CurrentVerticalResolution}")
+
+            for ((mn = 0; mn < ${#sw[@]}; mn++)) {
+                [[ ${sw[mn]//[[:space:]]} && ${sh[mn]//[[:space:]]} ]] &&
+                    resolution+="${sw[mn]//[[:space:]]}x${sh[mn]//[[:space:]]}, "
+            }
+
+            resolution=${resolution%,}
+        ;;
+
+        "Haiku")
+            resolution="$(screenmode | awk -F ' |, ' 'END{printf $2 "x" $3 " @ " $6 $7}')"
+
+            [[ "$refresh_rate" == "off" ]] && resolution="${resolution/ @*}"
+        ;;
+
+        "FreeMiNT")
+            # Need to block X11 queries
+        ;;
+
+        *)
+            if type -p xrandr >/dev/null && [[ $DISPLAY && -z $WAYLAND_DISPLAY ]]; then
+                case $refresh_rate in
+                    "on")
+                        resolution="$(xrandr --nograb --current |\
+                                      awk 'match($0,/[0-9]*\.[0-9]*\*/) {
+                                           printf $1 " @ " substr($0,RSTART,RLENGTH) "Hz, "}')"
+                    ;;
+
+                    "off")
+                        resolution="$(xrandr --nograb --current |\
+                                      awk -F 'connected |\\+|\\(' \
+                                             '/ connected.*[0-9]+x[0-9]+\+/ && $2 {printf $2 ", "}')"
+
+                        resolution="${resolution/primary, }"
+                        resolution="${resolution/primary }"
+                    ;;
+                esac
+                resolution="${resolution//\*}"
+
+            elif type -p xwininfo >/dev/null && [[ $DISPLAY && -z $WAYLAND_DISPLAY ]]; then
+                read -r w h \
+                    <<< "$(xwininfo -root | awk -F':' '/Width|Height/ {printf $2}')"
+                resolution="${w}x${h}"
+
+            elif type -p xdpyinfo >/dev/null && [[ $DISPLAY && -z $WAYLAND_DISPLAY ]]; then
+                resolution="$(xdpyinfo | awk '/dimensions:/ {printf $2}')"
+
+            elif [[ -d /sys/class/drm ]]; then
+                for dev in /sys/class/drm/*/modes; do
+                    read -r resolution _ < "$dev"
+
+                    [[ $resolution ]] && break
+                done
+            fi
+        ;;
+    esac
+
+    resolution="${resolution%,*}"
+    [[ -z "${resolution/x}" ]] && resolution=
+}
+
 distro_shorthand="on"
 os_arch="off"
 kernel_shorthand="on"
@@ -3289,12 +3409,19 @@ cpu_temp="off"
 gpu_type="all"
 gpu_brand="off"
 shell_path="off"
+refresh_rate="on"
 
 get() {
 	get_$1 2> /dev/null
 	eval "tmp=\$$1; export $1=\`echo \$tmp | xargs\`"
 	#eval "export $1=\${$1// }"
+	
+	# Caching for faster execution:
+	eval "echo \"export $1=\\\"\$$1\\\"\"" >> ~/.cache/lugfetch
 }
+
+# Refresh cache
+rm ~/.cache/lugfetch 2> /dev/null
 
 cache_uname
 get title
@@ -3308,6 +3435,7 @@ get cpu
 cpu=$(echo $cpu | sed 's/ with.*//g')
 
 get gpu
+#get resolution
 get memory
 
 get wm
@@ -3319,6 +3447,15 @@ get packages
 get uptime
 )""";
 
+string retrieve_from_cache=R"""(
+if [ ! -f ~/.cache/lugfetch ]; then
+	echo "Cache file created!"
+	echo "Rerun lugfetch!"
+	exit 0
+fi
+source ~/.cache/lugfetch
+)""";
+
 int main(int argc, char** argv) {
 	// If no arguments were passed, run the shell script to set the environment variables
 	// The shell script will pass an arbitrary argument (in this case `rerun_with_env_vars_set`)
@@ -3327,7 +3464,12 @@ int main(int argc, char** argv) {
 	// if (getenv("os")) { // Not using this to detect environment variables cause of possible recursion
 		outputFetch();
 	} else {
-		shell_script += "\n" + (string)argv[0] + " rerun_with_env_vars_set";
+		// Output based on cache info from last run
+		retrieve_from_cache += "\n" + (string)argv[0] + " rerun_with_env_vars_set";
+		system(retrieve_from_cache.c_str());
+
+		// Run the fetching script asynchronysly to cache it for the next run
+		shell_script = "(" + shell_script + ") &";
 		system(shell_script.c_str());
 	}
 }
