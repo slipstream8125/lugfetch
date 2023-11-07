@@ -3,3 +3,6 @@ lugfetch: lugfetch.cpp
 
 run: lugfetch
 	./lugfetch
+
+install: lugfetch
+	cp ./lugfetch /usr/bin/lugfetch
