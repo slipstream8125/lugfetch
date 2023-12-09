@@ -7,8 +7,13 @@ source=("lugfetch.cpp")
 depends=("gcc")
 sha512sums=("SKIP")
 license=("custom")
-package(){
-	g++ lugfetch.cpp -o lugfetch
-	sudo cp lugfetch /usr/bin/lugfetch
-	chmod +x /usr/bin/lugfetch
+build() {
+    cd "$srcdir/"
+    g++ lugfetch.cpp -o lugfetch
+}
+
+package() {
+    cd "$srcdir/"
+    mkdir -p "$pkgdir/usr/bin"
+    cp "$pkgname" "$pkgdir/usr/bin/"
 }
