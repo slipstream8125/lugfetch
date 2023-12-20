@@ -255,7 +255,7 @@ void outputFetch() {
 
 	cout << endl;
 	cout << content;
-	cout << endl;
+	cout << colors[8] << endl; // Output colors[8] to reset colors after the script to be terminal default
 }
 
 // The shell script for fetching all the info
@@ -1689,6 +1689,7 @@ get_cpu() {
     cpu="${cpu//Core / }"
     cpu="${cpu//(\"AuthenticAMD\"*)}"
     cpu="${cpu//with Radeon * Graphics}"
+    cpu="${cpu//with*}"
     cpu="${cpu//, altivec supported}"
     cpu="${cpu//FPU*}"
     cpu="${cpu//Chip Revision*}"
@@ -3293,6 +3294,7 @@ get_gpu() {
 			print a[i]
 		}
 	}}' | head -1 | sed 's/.*\[//g' | sed 's/].*//g')
+	gpu=${gpu//Mobile}
 }
 
 get_resolution() {
